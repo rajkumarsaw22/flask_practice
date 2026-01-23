@@ -1,34 +1,44 @@
 pipeline {
-    agent any
-
-    environment {
-        VENV = "${WORKSPACE}/venv"
+    agent {
+        docker {
+            image 'python:3.10-slim'
+        }
     }
 
     stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Build') {
             steps {
-                sh 'python3 -m venv venv'
-                sh './venv/bin/pip install --upgrade pip'
-                sh './venv/bin/pip install -r requirements.txt'
+                sh '''
+                    python --version
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Test') {
             steps {
-                sh './venv/bin/pytest tests/'
+                sh '''
+                    pytest tests/
+                '''
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to Staging') {
             when {
-                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+                branch 'main'
             }
             steps {
                 sh '''
-                echo "Deploying Flask app to staging..."
-                # Example: run with gunicorn
-                ./venv/bin/gunicorn -w 4 -b 0.0.0.0:8000 app:app --daemon
+                    echo "Deploying Flask app to staging..."
+                    nohup python app.py > app.log 2>&1 &
                 '''
             }
         }
@@ -36,18 +46,32 @@ pipeline {
 
     post {
         success {
-            emailext(
-                subject: "SUCCESS: Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The build succeeded! Deployed to staging.",
-                to: "rajkumar22.tech@gmail.com"
-            )
+            script {
+                try {
+                    emailext(
+                        subject: "SUCCESS: Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Build succeeded and application deployed to staging.",
+                        to: "rajkumar22.tech@gmail.com"
+                    )
+                } catch (err) {
+                    echo "Email notification failed, but build succeeded."
+                }
+            }
         }
+
         failure {
-            emailext(
-                subject: "FAILURE: Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The build failed. Please check Jenkins logs.",
-                to: "rajkumar22.tech@gmail.com"
-            )
+            script {
+                try {
+                    emailext(
+                        subject: "FAILURE: Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: "Build failed. Please check Jenkins console output.",
+                        to: "rajkumar22.tech@gmail.com"
+                    )
+                } catch (err) {
+                    echo "Email notification failed."
+                }
+            }
         }
     }
 }
+
