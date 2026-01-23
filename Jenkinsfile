@@ -2,6 +2,7 @@ pipeline {
     agent {
         docker {
             image 'python:3.10-slim'
+            args '-u root'
         }
     }
 
@@ -13,7 +14,7 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Install Dependencies') {
             steps {
                 sh '''
                     python --version
@@ -23,11 +24,27 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Code Quality - Black') {
             steps {
-                sh '''
-                    pytest tests/
-                '''
+                sh 'black --check .'
+            }
+        }
+
+        stage('Static Analysis - Pylint') {
+            steps {
+                sh 'pylint app.py || true'
+            }
+        }
+
+        stage('Security Scan - Bandit') {
+            steps {
+                sh 'bandit -r . || true'
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                sh 'pytest tests/'
             }
         }
 
@@ -50,7 +67,7 @@ pipeline {
                 try {
                     emailext(
                         subject: "SUCCESS: Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        body: "Build succeeded and application deployed to staging.",
+                        body: "Build, tests, and deployment completed successfully.",
                         to: "rajkumar22.tech@gmail.com"
                     )
                 } catch (err) {
@@ -64,7 +81,7 @@ pipeline {
                 try {
                     emailext(
                         subject: "FAILURE: Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        body: "Build failed. Please check Jenkins console output.",
+                        body: "Pipeline failed. Please check Jenkins logs.",
                         to: "rajkumar22.tech@gmail.com"
                     )
                 } catch (err) {
@@ -74,4 +91,3 @@ pipeline {
         }
     }
 }
-
