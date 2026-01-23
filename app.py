@@ -64,5 +64,9 @@ def delete_student(student_id):
         mongo.db.students.delete_one({"_id": ObjectId(student_id)})
     return redirect(url_for('index'))
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    )
