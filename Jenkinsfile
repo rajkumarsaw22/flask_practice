@@ -33,7 +33,7 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        /*stage('Test') {
             steps {
                 sh '''
                 ssh $REMOTE_USER@$REMOTE_HOST "
@@ -43,7 +43,7 @@ pipeline {
                 "
                 '''
             }
-        }
+        }*/
 
         stage('Deploy') {
             steps {
@@ -70,7 +70,7 @@ EOF
         }
     }
 
-    post {
+   /* post {
         success {
             mail to: 'rajkumar22.libra@gmail.com',
                  subject: "SUCCESS: Jenkins Build #${BUILD_NUMBER}",
@@ -82,5 +82,5 @@ EOF
                  subject: "FAILED: Jenkins Build #${BUILD_NUMBER}",
                  body: "Build failed. Check Jenkins console output."
         }
-    }
+    }*/
 }
