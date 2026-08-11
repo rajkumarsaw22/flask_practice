@@ -1,7 +1,7 @@
 #!/bin/bash
 cd ~/flask_Practice
 
-#test
+#test test
 
 # Create venv if not exists
 if [ ! -d venv ]; then
