@@ -39,7 +39,7 @@ pipeline {
                 sh '''
                 echo "Deploying application to staging environment..."
                 pkill -f app.py || true
-                nohup python app.py > app.log 2>&1 &
+                nohup ./venv/bin/python app.py > app.log 2>&1 &
                 '''
             }
         }
