@@ -5,6 +5,7 @@ pipeline {
         REMOTE_USER = "ubuntu"
         REMOTE_HOST = "3.111.171.3"
         REMOTE_DIR = "/home/ubuntu/flask_practice"
+        
     }
 
     stages {
