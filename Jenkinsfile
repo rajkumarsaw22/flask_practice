@@ -3,6 +3,9 @@ pipeline {
 
     environment {
         VENV = "venv"
+        REMOTE_USER = "ubuntu"
+        REMOTE_HOST = "3.111.171.3"
+        REMOTE_DIR = "/home/ubuntu/flask_practice"
     }
 
     stages {
@@ -38,8 +41,27 @@ pipeline {
             steps {
                 sh '''
                 echo "Deploying application to staging environment..."
-                pkill -f app.py || true
-                nohup ./venv/bin/python app.py > app.log 2>&1 &
+
+                mkdir -p ~/.ssh
+                ssh-keyscan -H $REMOTE_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
+
+                ssh $REMOTE_USER@$REMOTE_HOST "mkdir -p $REMOTE_DIR"
+
+                rsync -avz --delete \
+                    --exclude 'venv' \
+                    --exclude '.git' \
+                    --exclude '__pycache__' \
+                    ./ $REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/
+
+                ssh $REMOTE_USER@$REMOTE_HOST "
+                    cd $REMOTE_DIR &&
+                    python3 -m venv venv &&
+                    . venv/bin/activate &&
+                    pip install --upgrade pip &&
+                    pip install -r requirements.txt &&
+                    pkill -f app.py || true &&
+                    nohup ./venv/bin/python app.py > app.log 2>&1 &
+                "
                 '''
             }
         }
