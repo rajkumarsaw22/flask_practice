@@ -1,65 +1,45 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.10-slim'
-            args '-u root'
-        }
-    }
-    
+    agent any
+
     environment {
-        ENABLE_DB = "false"
+        VENV = "venv"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main',
+                url: 'https://github.com/rajkumarsaw22/flask_practice.git'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build') {
             steps {
                 sh '''
-                    python --version
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
+                python3 -m venv venv
+                . venv/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
                 '''
             }
         }
 
-        stage('Code Quality - Black') {
-            steps {
-                sh 'black --check . || true'
-            }
-        }
-
-        stage('Static Analysis - Pylint') {
-            steps {
-                sh 'pylint app.py || true'
-            }
-        }
-
-        stage('Security Scan - Bandit') {
-            steps {
-                sh 'bandit -r . || true'
-            }
-        }
-
-        stage('Unit Tests') {
-            steps {
-                sh 'PYTHONPATH=. pytest tests/'
-            }
-        }
-
-        stage('Deploy to Staging') {
-            when {
-                branch 'main'
-            }
+        stage('Test') {
             steps {
                 sh '''
-                    echo "Deploying Flask app to staging..."
-                    nohup python app.py > app.log 2>&1 &
+                . venv/bin/activate
+                pytest
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                echo "Deploying application to staging environment..."
+                pkill -f app.py || true
+                nohup python app.py > app.log 2>&1 &
                 '''
             }
         }
@@ -67,31 +47,15 @@ pipeline {
 
     post {
         success {
-            script {
-                try {
-                    emailext(
-                        subject: "SUCCESS: Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        body: "Build, tests, and deployment completed successfully.",
-                        to: "rajkumar22.tech@gmail.com"
-                    )
-                } catch (err) {
-                    echo "Email notification failed, but build succeeded."
-                }
-            }
+            mail to: 'rajkumar22.libra@gmail.com',
+                 subject: "SUCCESS: Jenkins Build #${BUILD_NUMBER}",
+                 body: "Build completed successfully."
         }
 
         failure {
-            script {
-                try {
-                    emailext(
-                        subject: "FAILURE: Jenkins Build ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        body: "Pipeline failed. Please check Jenkins logs.",
-                        to: "rajkumar22.tech@gmail.com"
-                    )
-                } catch (err) {
-                    echo "Email notification failed."
-                }
-            }
+            mail to: 'rajkumar22.libra@gmail.com',
+                 subject: "FAILED: Jenkins Build #${BUILD_NUMBER}",
+                 body: "Build failed. Check Jenkins console output."
         }
     }
 }
