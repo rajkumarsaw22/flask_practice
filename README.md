@@ -90,6 +90,56 @@ project/
 
 ---
 
+## GitHub Actions CI/CD Pipeline
+
+This project also ships a GitHub Actions workflow at [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml) that mirrors the Jenkins pipeline below, natively on GitHub.
+
+### Triggers
+
+| Event | Branches / Refs | Jobs that run |
+|---|---|---|
+| `push` | `main`, `staging` | test → build → deploy-staging (staging only) |
+| `push` (tag) | `v*` (e.g. `v1.0.0`) | test → build → deploy-production |
+| `pull_request` | targeting `main`, `staging` | test only |
+
+### Jobs
+
+1. **test** – Checks out the code, sets up Python 3.12, installs `requirements.txt`, and runs `pytest` (with `ENABLE_DB=false` so the suite doesn't need a live MongoDB instance). Publishes a JUnit test report as a workflow artifact.
+2. **build** – Runs only after `test` passes, and only on pushes (not PRs). Packages the repository into `build/flask_practice.zip` and uploads it as a build artifact.
+3. **deploy-staging** – Runs only on a push to the `staging` branch. Uses [`appleboy/ssh-action`](https://github.com/appleboy/ssh-action) to SSH into the staging server, pull the latest `staging` branch, reinstall dependencies, write `.env` from secrets, and restart `app.py`. Gated behind the `staging` [GitHub Environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment).
+4. **deploy-production** – Runs only when a tag matching `v*` is pushed (i.e. a release). SSHes into the production server, checks out the tagged commit, reinstalls dependencies, writes `.env`, and restarts `app.py`. Gated behind the `production` GitHub Environment.
+
+### Configuring secrets
+
+Add these under **Settings → Secrets and variables → Actions → New repository secret** (or as Environment secrets under `staging` / `production` for stricter access control):
+
+| Secret | Used by | Description |
+|---|---|---|
+| `MONGO_URI` | deploy-staging, deploy-production | MongoDB connection string written to the server's `.env` |
+| `SECRET_KEY` | deploy-staging, deploy-production | Flask session secret key |
+| `STAGING_HOST` | deploy-staging | Hostname/IP of the staging server |
+| `STAGING_USER` | deploy-staging | SSH username on the staging server |
+| `STAGING_SSH_KEY` | deploy-staging | Private SSH key with access to the staging server |
+| `PROD_HOST` | deploy-production | Hostname/IP of the production server |
+| `PROD_USER` | deploy-production | SSH username on the production server |
+| `PROD_SSH_KEY` | deploy-production | Private SSH key with access to the production server |
+
+To create a `staging` [Environment](https://github.com/settings) with its own secrets/approval rules: **Settings → Environments → New environment**, name it `staging` (and repeat for `production`).
+
+### Triggering a deployment
+
+* **Staging:** push (or merge) to the `staging` branch.
+* **Production:** create and push a release tag, e.g.:
+
+  ```bash
+  git tag v1.0.0
+  git push origin v1.0.0
+  ```
+
+  or cut a GitHub Release through the UI, which creates the tag automatically.
+
+---
+
 ## Jenkins CI/CD Pipeline
 
 This project uses a Jenkins CI/CD pipeline executed on a central Jenkins server.
