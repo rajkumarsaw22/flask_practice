@@ -1,6 +1,7 @@
 pipeline {
     agent any
 
+    
     environment {
         VENV = "venv"
         REMOTE_USER = "ubuntu"
