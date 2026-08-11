@@ -39,7 +39,7 @@ pipeline {
                 ssh $REMOTE_USER@$REMOTE_HOST "
                     cd $REMOTE_DIR &&
                     . venv/bin/activate &&
-                    ENABLE_DB=false pytest
+                    ENABLE_DB=true pytest
                 "
                 '''
             }
