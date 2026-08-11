@@ -47,14 +47,25 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh '''
-                echo "Deploying application to staging environment..."
-                ssh $REMOTE_USER@$REMOTE_HOST "
-                    cd $REMOTE_DIR &&
-                    pkill -f app.py || true &&
-                    nohup ./venv/bin/python app.py > app.log 2>&1 &
-                "
-                '''
+                withCredentials([
+                    string(credentialsId: 'flask-mongo-uri', variable: 'MONGO_URI'),
+                    string(credentialsId: 'flask-secret-key', variable: 'SECRET_KEY')
+                ]) {
+                    sh '''
+                    echo "Deploying application to staging environment..."
+
+                    ssh $REMOTE_USER@$REMOTE_HOST "cat > $REMOTE_DIR/.env" <<EOF
+MONGO_URI=$MONGO_URI
+SECRET_KEY=$SECRET_KEY
+EOF
+
+                    ssh $REMOTE_USER@$REMOTE_HOST "
+                        cd $REMOTE_DIR &&
+                        pkill -f app.py || true &&
+                        nohup ./venv/bin/python app.py > app.log 2>&1 &
+                    "
+                    '''
+                }
             }
         }
     }
