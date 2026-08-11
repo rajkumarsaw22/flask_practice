@@ -1,6 +1,8 @@
 #!/bin/bash
 cd ~/flask_Practice
 
+#test
+
 # Create venv if not exists
 if [ ! -d venv ]; then
     python3 -m venv venv
