@@ -1,7 +1,7 @@
 pipeline {
     agent any
 
-    
+
     environment {
         VENV = "venv"
         REMOTE_USER = "ubuntu"
@@ -46,15 +46,14 @@ pipeline {
                 mkdir -p ~/.ssh
                 ssh-keyscan -H $REMOTE_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
 
-                ssh $REMOTE_USER@$REMOTE_HOST "mkdir -p $REMOTE_DIR"
-
-                rsync -avz --delete \
-                    --exclude 'venv' \
-                    --exclude '.git' \
-                    --exclude '__pycache__' \
-                    ./ $REMOTE_USER@$REMOTE_HOST:$REMOTE_DIR/
-
                 ssh $REMOTE_USER@$REMOTE_HOST "
+                    if [ -d $REMOTE_DIR/.git ]; then
+                        cd $REMOTE_DIR &&
+                        git fetch origin main &&
+                        git reset --hard origin/main
+                    else
+                        git clone -b main https://github.com/rajkumarsaw22/flask_practice.git $REMOTE_DIR
+                    fi &&
                     cd $REMOTE_DIR &&
                     python3 -m venv venv &&
                     . venv/bin/activate &&
