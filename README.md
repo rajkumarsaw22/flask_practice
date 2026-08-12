@@ -25,6 +25,7 @@ A simple **Flask** web application to manage student records with **MongoDB** as
 
 ## Setup Instructions
 
+
 ### 1. Clone the repository
 
 ```bash
